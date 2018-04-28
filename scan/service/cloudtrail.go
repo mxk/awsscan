@@ -9,7 +9,7 @@ type cloudtrailSvc struct{}
 
 func init() { scan.Register(cloudtrailSvc{}) }
 
-func (cloudtrailSvc) Name() string         { return cloudtrail.ServiceName }
+func (cloudtrailSvc) ID() string           { return cloudtrail.EndpointsID }
 func (cloudtrailSvc) NewFunc() interface{} { return cloudtrail.New }
 func (cloudtrailSvc) Roots() []interface{} {
 	return []interface{}{

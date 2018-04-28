@@ -9,7 +9,7 @@ type ecsSvc struct{}
 
 func init() { scan.Register(ecsSvc{}) }
 
-func (ecsSvc) Name() string         { return ecs.ServiceName }
+func (ecsSvc) ID() string           { return ecs.EndpointsID }
 func (ecsSvc) NewFunc() interface{} { return ecs.New }
 func (ecsSvc) Roots() []interface{} {
 	return []interface{}{

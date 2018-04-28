@@ -10,7 +10,7 @@ type iamSvc struct{}
 
 func init() { scan.Register(iamSvc{}) }
 
-func (iamSvc) Name() string         { return iam.ServiceName }
+func (iamSvc) ID() string           { return iam.EndpointsID }
 func (iamSvc) NewFunc() interface{} { return iam.New }
 func (iamSvc) Roots() []interface{} {
 	return []interface{}{

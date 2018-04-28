@@ -9,7 +9,7 @@ type dynamodbSvc struct{}
 
 func init() { scan.Register(dynamodbSvc{}) }
 
-func (dynamodbSvc) Name() string         { return dynamodb.ServiceName }
+func (dynamodbSvc) ID() string           { return dynamodb.EndpointsID }
 func (dynamodbSvc) NewFunc() interface{} { return dynamodb.New }
 func (dynamodbSvc) Roots() []interface{} {
 	return []interface{}{

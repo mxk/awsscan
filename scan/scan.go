@@ -16,18 +16,14 @@ import (
 var svcRegistry = make(map[string]service)
 
 func Register(s Service) {
-	name := path.Base(reflect.TypeOf(s.NewFunc()).Out(0).Elem().PkgPath())
-	if _, ok := svcRegistry[name]; ok {
-		panic("scan: service already registered: " + name)
+	pkg := path.Base(reflect.TypeOf(s.NewFunc()).Out(0).Elem().PkgPath())
+	if _, ok := svcRegistry[pkg]; ok {
+		panic("scan: service already registered: " + pkg)
 	}
-	if svcRegions[name] == nil {
-		r := svcRegions[s.Name()]
-		if r == nil {
-			panic("scan: invalid service name: " + name)
-		}
-		svcRegions[name] = r
+	if svcRegions[s.ID()] == nil {
+		panic("scan: invalid service id: " + s.ID())
 	}
-	svcRegistry[name] = service{Service: s, api: apiMap(s)}
+	svcRegistry[pkg] = service{Service: s, api: apiMap(s)}
 }
 
 func Services() []string {
@@ -40,7 +36,7 @@ func Services() []string {
 }
 
 type Service interface {
-	Name() string
+	ID() string
 	NewFunc() interface{}
 	Roots() []interface{}
 }
@@ -64,7 +60,7 @@ func Scan(services []string, configs []*aws.Config, workers int) Map {
 	var wg sync.WaitGroup
 	for svc, states := range m {
 		for _, cfg := range cfgs {
-			if !canScan(svc, cfg.Region) {
+			if !canScan(svcRegistry[svc].ID(), cfg.Region) {
 				continue
 			}
 			s := newState(svc, cfg, send)

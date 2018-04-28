@@ -9,7 +9,7 @@ type autoscalingSvc struct{}
 
 func init() { scan.Register(autoscalingSvc{}) }
 
-func (autoscalingSvc) Name() string         { return autoscaling.ServiceName }
+func (autoscalingSvc) ID() string           { return autoscaling.EndpointsID }
 func (autoscalingSvc) NewFunc() interface{} { return autoscaling.New }
 func (autoscalingSvc) Roots() []interface{} {
 	return []interface{}{

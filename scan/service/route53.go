@@ -9,7 +9,7 @@ type route53Svc struct{}
 
 func init() { scan.Register(route53Svc{}) }
 
-func (route53Svc) Name() string         { return route53.ServiceName }
+func (route53Svc) ID() string           { return route53.EndpointsID }
 func (route53Svc) NewFunc() interface{} { return route53.New }
 func (route53Svc) Roots() []interface{} {
 	return []interface{}{

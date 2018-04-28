@@ -9,7 +9,7 @@ type ec2Svc struct{}
 
 func init() { scan.Register(ec2Svc{}) }
 
-func (ec2Svc) Name() string         { return ec2.ServiceName }
+func (ec2Svc) ID() string           { return ec2.EndpointsID }
 func (ec2Svc) NewFunc() interface{} { return ec2.New }
 func (ec2Svc) Roots() []interface{} {
 	return []interface{}{

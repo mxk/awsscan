@@ -9,7 +9,7 @@ type cloudwatchlogsSvc struct{}
 
 func init() { scan.Register(cloudwatchlogsSvc{}) }
 
-func (cloudwatchlogsSvc) Name() string         { return cloudwatchlogs.ServiceName }
+func (cloudwatchlogsSvc) ID() string           { return cloudwatchlogs.EndpointsID }
 func (cloudwatchlogsSvc) NewFunc() interface{} { return cloudwatchlogs.New }
 func (cloudwatchlogsSvc) Roots() []interface{} {
 	return []interface{}{

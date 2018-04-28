@@ -9,7 +9,7 @@ type rdsSvc struct{}
 
 func init() { scan.Register(rdsSvc{}) }
 
-func (rdsSvc) Name() string         { return rds.ServiceName }
+func (rdsSvc) ID() string           { return rds.EndpointsID }
 func (rdsSvc) NewFunc() interface{} { return rds.New }
 func (rdsSvc) Roots() []interface{} {
 	return []interface{}{

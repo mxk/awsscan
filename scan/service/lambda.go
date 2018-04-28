@@ -9,7 +9,7 @@ type lambdaSvc struct{}
 
 func init() { scan.Register(lambdaSvc{}) }
 
-func (lambdaSvc) Name() string         { return lambda.ServiceName }
+func (lambdaSvc) ID() string           { return lambda.EndpointsID }
 func (lambdaSvc) NewFunc() interface{} { return lambda.New }
 func (lambdaSvc) Roots() []interface{} {
 	return []interface{}{

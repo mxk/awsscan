@@ -12,7 +12,7 @@ type s3Svc struct{ *scan.State }
 
 func init() { scan.Register(s3Svc{}) }
 
-func (s3Svc) Name() string         { return s3.ServiceName }
+func (s3Svc) ID() string           { return s3.EndpointsID }
 func (s3Svc) NewFunc() interface{} { return s3.New }
 func (s3Svc) Roots() []interface{} {
 	return []interface{}{

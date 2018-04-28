@@ -9,7 +9,7 @@ type elasticacheSvc struct{}
 
 func init() { scan.Register(elasticacheSvc{}) }
 
-func (elasticacheSvc) Name() string         { return elasticache.ServiceName }
+func (elasticacheSvc) ID() string           { return elasticache.EndpointsID }
 func (elasticacheSvc) NewFunc() interface{} { return elasticache.New }
 func (elasticacheSvc) Roots() []interface{} {
 	return []interface{}{

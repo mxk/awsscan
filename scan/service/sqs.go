@@ -10,7 +10,7 @@ type sqsSvc struct{}
 
 func init() { scan.Register(sqsSvc{}) }
 
-func (sqsSvc) Name() string         { return sqs.ServiceName }
+func (sqsSvc) ID() string           { return sqs.EndpointsID }
 func (sqsSvc) NewFunc() interface{} { return sqs.New }
 func (sqsSvc) Roots() []interface{} {
 	return []interface{}{

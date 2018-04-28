@@ -9,7 +9,7 @@ type elbv2Svc struct{}
 
 func init() { scan.Register(elbv2Svc{}) }
 
-func (elbv2Svc) Name() string         { return elbv2.ServiceName }
+func (elbv2Svc) ID() string           { return elbv2.EndpointsID }
 func (elbv2Svc) NewFunc() interface{} { return elbv2.New }
 func (elbv2Svc) Roots() []interface{} {
 	return []interface{}{
