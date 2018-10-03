@@ -3,7 +3,7 @@ package svc
 import (
 	"strings"
 
-	"github.com/LuminalHQ/cloudcover/fdb/aws/scan"
+	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 )
 

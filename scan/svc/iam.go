@@ -3,7 +3,7 @@ package svc
 import (
 	"net/http"
 
-	"github.com/LuminalHQ/cloudcover/fdb/aws/scan"
+	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 )

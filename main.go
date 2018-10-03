@@ -1,4 +1,4 @@
-package aws
+package main
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LuminalHQ/cloudcover/fdb/aws/scan"
+	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/LuminalHQ/cloudcover/x/cli"
 	"github.com/LuminalHQ/cloudcover/x/region"
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
@@ -18,20 +18,8 @@ import (
 	"github.com/pkg/errors"
 
 	// Service registration
-	_ "github.com/LuminalHQ/cloudcover/fdb/aws/scan/svc"
+	_ "github.com/LuminalHQ/cloudcover/awsscan/scan/svc"
 )
-
-var scanCli = awsCli.Add(&cli.Info{
-	Name:    "scan",
-	Usage:   "[options]",
-	Summary: "Describe all resources in an AWS account",
-	New: func() cli.Cmd {
-		return &scanCmd{
-			Hier:    "{account}/{region}/{service}.{api},{id}",
-			Workers: 64,
-		}
-	},
-})
 
 type scanCmd struct {
 	CA       bool   `flag:"Make CloudAssert-compatible API calls"`
@@ -45,7 +33,21 @@ type scanCmd struct {
 	Workers  int    `flag:"IPoAC carrier <count>"`
 }
 
-func (*scanCmd) Info() *cli.Info { return scanCli }
+func main() {
+	cli.Main = cli.Info{
+		Usage:   "[options]",
+		Summary: "Describe all resources in an AWS account",
+		New: func() cli.Cmd {
+			return &scanCmd{
+				Hier:    "{account}/{region}/{service}.{api},{id}",
+				Workers: 64,
+			}
+		},
+	}
+	cli.Main.Run(os.Args[1:])
+}
+
+func (*scanCmd) Info() *cli.Info { return &cli.Main }
 
 func (*scanCmd) Help(w *cli.Writer) {
 	w.Text(`
