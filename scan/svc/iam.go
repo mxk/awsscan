@@ -101,3 +101,7 @@ func (s iamSvc) ListUserPolicies(lu *iam.ListUsersOutput) (q []iam.ListUserPolic
 	s.Split(&q, "UserName", lu.Users, "UserName")
 	return
 }
+
+func (s iamSvc) UserResource(out *iam.ListUsersOutput) (bool, error) {
+	return false, s.MakeResources("aws_iam_user", s.Strings(out.Users, "UserName"), nil)
+}
