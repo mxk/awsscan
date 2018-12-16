@@ -27,17 +27,18 @@ import (
 )
 
 type scanCmd struct {
-	CA       bool   `flag:"Make CloudAssert-compatible API calls"`
-	Hier     string `flag:"Depth or <format> of output hierarchy"`
-	Min      bool   `flag:"Minify JSON output"`
-	Out      string `flag:"Output <file>"`
-	Raw      bool   `flag:"Do not compact output"`
-	Regions  string `flag:"Comma-separated <list> of regions (default all)"`
-	Roots    bool   `flag:"Make only root API calls"`
-	Services string `flag:"Comma-separated <list> of services (default all)"`
-	Stats    bool   `flag:"Report call statistics in output"`
-	TFState  bool   `flag:"Generate Terraform state output"`
-	Workers  int    `flag:"IPoAC carrier <count>"`
+	CA        bool   `flag:"Make CloudAssert-compatible API calls"`
+	Hier      string `flag:"Depth or <format> of output hierarchy"`
+	Min       bool   `flag:"Minify JSON output"`
+	NoRefresh bool   `flag:"Do not refresh Terraform state output"`
+	Out       string `flag:"Output <file>"`
+	Raw       bool   `flag:"Do not compact output"`
+	Regions   string `flag:"Comma-separated <list> of regions (default all)"`
+	Roots     bool   `flag:"Make only root API calls"`
+	Services  string `flag:"Comma-separated <list> of services (default all)"`
+	Stats     bool   `flag:"Report call statistics in output"`
+	TFState   bool   `flag:"Generate Terraform state output"`
+	Workers   int    `flag:"IPoAC carrier <count>"`
 }
 
 func main() {
@@ -141,10 +142,15 @@ func (cmd *scanCmd) Main(args []string) error {
 	// Write Terraform state only if no other JSON-related flags are set
 	if cmd.TFState && !cmd.Min && !cmd.Raw && !cmd.Stats {
 		s, err := scan.NewTFState(maps)
-		if err == nil {
-			err = tfx.WriteStateFile(cmd.Out, s)
+		if err != nil {
+			return err
 		}
-		return err
+		if !cmd.NoRefresh {
+			if s, err = tfx.Context().Refresh(s); err != nil {
+				return err
+			}
+		}
+		return tfx.WriteStateFile(cmd.Out, s)
 	}
 
 	// Format and write JSON output
