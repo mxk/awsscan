@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/LuminalHQ/cloudcover/x/cli"
 	"github.com/LuminalHQ/cloudcover/x/region"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/pkg/errors"
@@ -25,11 +27,13 @@ type scanCmd struct {
 	CA       bool   `flag:"Make CloudAssert-compatible API calls"`
 	Hier     string `flag:"Depth or <format> of output hierarchy"`
 	Min      bool   `flag:"Minify JSON output"`
+	Out      string `flag:"Output <file>"`
 	Raw      bool   `flag:"Do not compact output"`
 	Regions  string `flag:"Comma-separated <list> of regions (default all)"`
 	Roots    bool   `flag:"Make only root API calls"`
 	Services string `flag:"Comma-separated <list> of services (default all)"`
 	Stats    bool   `flag:"Report call statistics in output"`
+	TFState  bool   `flag:"Generate Terraform state output"`
 	Workers  int    `flag:"IPoAC carrier <count>"`
 }
 
@@ -53,7 +57,7 @@ func (*scanCmd) Help(w *cli.Writer) {
 	w.Text(`
 	Execute List/Get/Describe calls for supported services in one or more
 	regions to map resources in an AWS account. The results are written to
-	stdout in JSON format:
+	stdout (or file specified by -out) in JSON format:
 
 	  {
 	    "<account>/<region>/<service>.<api>": {
@@ -121,22 +125,34 @@ func (cmd *scanCmd) Main(args []string) error {
 		op.Services = getServices(cmd.Services)
 	}
 
-	// Execute scan and write results
+	// Execute scan
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return errors.Wrap(err, "failed to load AWS config")
 	}
 	maps, err := scan.Account(&cfg, op)
-	if err == nil {
-		if makeValues(maps); !cmd.Raw {
-			maps = scan.Compact(maps)
+	if err != nil {
+		return err
+	}
+
+	// Write Terraform state only if no other JSON-related flags are set
+	if cmd.TFState && !cmd.Min && !cmd.Raw && !cmd.Stats {
+		s, err := scan.NewTFState(maps)
+		if err == nil {
+			err = tfx.WriteStateFile(cmd.Out, s)
 		}
-		h := makeHier(maps, keyGen, cmd.Stats)
-		if err = cmd.writeJSON(h); err == nil && !cmd.Raw {
-			if err = apiErr(maps); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
-				cli.Exit(3)
-			}
+		return err
+	}
+
+	// Format and write JSON output
+	if makeValues(maps); !cmd.Raw {
+		maps = scan.Compact(maps)
+	}
+	h := makeHier(maps, keyGen, cmd.Stats)
+	if err = cmd.writeJSON(h); err == nil && !cmd.Raw {
+		if err = apiErr(maps); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+			cli.Exit(3)
 		}
 	}
 	return err
@@ -153,10 +169,14 @@ func (cmd *scanCmd) mode() (m scan.Mode) {
 	if cmd.Stats {
 		m |= scan.KeepStats
 	}
+	if cmd.TFState {
+		tfx.SetLogFilter(os.Stderr, "", true)
+		m |= scan.TFState
+	}
 	return
 }
 
-// writeRegions writes regions within each partition to stdout.
+// writeRegions writes regions within each partition to cmd.Out.
 func (cmd *scanCmd) writeRegions() error {
 	parts := endpoints.DefaultPartitions()
 	regions := make(map[string][]string)
@@ -177,11 +197,13 @@ func (cmd *scanCmd) writeRegions() error {
 		}
 		b.WriteByte('\n')
 	}
-	_, err := b.WriteTo(os.Stdout)
-	return err
+	return cli.WriteFile(cmd.Out, func(w io.Writer) error {
+		_, err := b.WriteTo(w)
+		return err
+	})
 }
 
-// writeServices writes APIs and regions for all supported services to stdout.
+// writeServices writes APIs and regions for all supported services to cmd.Out.
 func (cmd *scanCmd) writeServices() error {
 	var regions []string
 	for _, p := range endpoints.DefaultPartitions() {
@@ -254,21 +276,21 @@ func (cmd *scanCmd) writeServices() error {
 		}
 		b.WriteByte('\n')
 	}
-	_, err := b.WriteTo(os.Stdout)
-	return err
+	return cli.WriteFile(cmd.Out, func(w io.Writer) error {
+		_, err := b.WriteTo(w)
+		return err
+	})
 }
 
-// writeJSON writes the JSON encoding of v to stdout.
+// writeJSON writes the JSON encoding of v to cmd.Out.
 func (cmd *scanCmd) writeJSON(v interface{}) error {
-	enc := json.NewEncoder(os.Stdout)
-	if enc.SetEscapeHTML(false); !cmd.Min {
-		enc.SetIndent("", "\t")
-	}
-	err := enc.Encode(v)
-	if err != nil {
-		err = errors.Wrap(err, "failed to encode JSON")
-	}
-	return err
+	return cli.WriteFile(cmd.Out, func(w io.Writer) error {
+		enc := json.NewEncoder(w)
+		if enc.SetEscapeHTML(false); !cmd.Min {
+			enc.SetIndent("", "\t")
+		}
+		return errors.Wrap(enc.Encode(v), "failed to encode JSON")
+	})
 }
 
 // keyGenFunc returns hierarchy keys for the given call.

@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -9,8 +10,10 @@ import (
 
 	"github.com/LuminalHQ/cloudcover/x/arn"
 	"github.com/LuminalHQ/cloudcover/x/region"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	tf "github.com/hashicorp/terraform/terraform"
 	"github.com/pkg/errors"
 )
 
@@ -22,6 +25,7 @@ const (
 	RootsOnly   Mode = 1 << iota // Make only root API calls
 	KeepStats                    // Maintain call statistics
 	CloudAssert                  // Limit calls to those used by cloudassert
+	TFState                      // Generate skeleton Terraform state
 )
 
 // Opts specifies optional scan parameters.
@@ -33,10 +37,12 @@ type Opts struct {
 }
 
 // Map contains all calls for one account/region/service, indexed by API name.
+// Resources are indexed by Terraform state keys.
 type Map struct {
 	arn.Ctx
-	Service string
-	Calls   map[string][]*Call
+	Service   string
+	Calls     map[string][]*Call
+	Resources map[string]*tf.ResourceState
 }
 
 // Account creates a map of each service in each region using worker goroutines.
@@ -176,6 +182,21 @@ func Compact(maps []*Map) []*Map {
 	return keepMaps
 }
 
+// NewTFState combines resources from all maps into a single Terraform state.
+func NewTFState(maps []*Map) (*tf.State, error) {
+	s := tfx.NewState()
+	rs := s.RootModule().Resources
+	for _, m := range maps {
+		for k, r := range m.Resources {
+			if _, dup := rs[k]; dup {
+				return nil, fmt.Errorf("resource state key collision: %q", k)
+			}
+			rs[k] = r
+		}
+	}
+	return s, nil
+}
+
 // ident returns caller identity for the current credentials, automatically
 // detecting the correct partition when necessary.
 func ident(cfg aws.Config, m Mode) (*sts.GetCallerIdentityOutput, error) {
@@ -219,7 +240,8 @@ func compactIO(io interface{}, skipFields typeBitSet, in bool) interface{} {
 	}
 	v = v.Elem()
 	t := v.Type()
-	skip := skipFields[t]
+	sf := skipFields[t]
+	skip := staticBitSet{sf[:]}
 	var keep IO
 	for i, n := 0, t.NumField(); i < n; i++ {
 		if !skip.test(i) {

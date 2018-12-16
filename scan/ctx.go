@@ -12,6 +12,7 @@ import (
 	"github.com/LuminalHQ/cloudcover/x/arn"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/defaults"
+	tf "github.com/hashicorp/terraform/terraform"
 )
 
 // Ctx contains the scan state for one service/region combination.
@@ -44,6 +45,9 @@ func newCtx(cfg *aws.Config, ac arn.Ctx, svc *svc, opts Opts) *Ctx {
 		svc:    svc,
 		client: svc.newClient.Call([]reflect.Value{reflect.ValueOf(cpy)})[0],
 		run:    make(map[*link]*batch, len(svc.links)),
+	}
+	if ctx.Mode(TFState) {
+		ctx.Resources = make(map[string]*tf.ResourceState)
 	}
 	iface := reflect.New(svc.typ).Elem()
 	iface.FieldByName("Ctx").Set(reflect.ValueOf(ctx))
@@ -162,6 +166,11 @@ func (*Ctx) CopyInput(dst interface{}, field string, out output) {
 	}
 }
 
+// TFState converts an SDK Output struct into zero or more Terraform resource
+// states, updating Ctx.Map.Resources as necessary. If it returns false, all API
+// calls that depend on out are skipped.
+func (*Ctx) TFState(out interface{}) (bool, error) { return false, nil }
+
 // tryNext tries to run all links that depend on api.
 func (ctx *Ctx) tryNext(api string) {
 	if api != "" && ctx.Mode(RootsOnly) {
@@ -210,7 +219,9 @@ func (ctx *Ctx) tryRun(lnk *link) {
 		srcs := make([]src, 0, len(calls))
 		for _, c := range calls {
 			for i, out := range c.Out {
-				srcs = append(srcs, src{c, i, reflect.ValueOf(out)})
+				if !c.skipOut.test(i) {
+					srcs = append(srcs, src{c, i, reflect.ValueOf(out)})
+				}
 			}
 		}
 		if len(srcs) == 0 {
@@ -289,6 +300,18 @@ func (ctx *Ctx) next() *Call {
 func (ctx *Ctx) done(c *Call) bool {
 	if c.Err != nil && c.Err.Code != "" && len(c.Out) == 0 {
 		ctx.iface.HandleError(c.req, c.Err)
+	}
+	if ctx.Mode(TFState) {
+		for i, out := range c.Out {
+			use, err := ctx.iface.TFState(out)
+			if err != nil {
+				// TODO: Pass up to scanner and terminate scan?
+				panic("scan: service tfstate error: " + err.Error())
+			}
+			if !use {
+				c.skipOut.set(i)
+			}
+		}
 	}
 	b := c.bat
 	c.bat = nil

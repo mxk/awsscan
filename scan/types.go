@@ -36,8 +36,8 @@ func updateTypes(r *aws.Request) {
 // updateSkipFields adds a new bitSet to skipFields for type t identifying the
 // fields to skip when compacting this type.
 func updateSkipFields(t reflect.Type, ioToken []string, limTruncToken string) {
-	var s bitSet
-	for i := t.NumField() - 1; i >= 0; i-- {
+	s := skipFields[nil] // Zero value
+	for i, s := t.NumField()-1, (staticBitSet{s[:]}); i >= 0; i-- {
 		f := t.Field(i)
 		if f.PkgPath != "" || f.Name == limTruncToken {
 			s.set(i) // Unexported or Limit/Truncation token
@@ -67,27 +67,40 @@ func copySkipFields() typeBitSet {
 	return cpy
 }
 
-// typeBitSet associates a bitSet with a reflect.Type.
-type typeBitSet map[reflect.Type]bitSet
+// typeBitSet associates a reflect.Type with a fixed-size bitSet.
+type typeBitSet map[reflect.Type][1]uint64
+
+// maxFields is the maximum number of struct fields supported by typeBitSet.
+const maxFields = len(typeBitSet(nil)[nil]) * 64
 
 // bitSet is an efficient map[int]bool representation.
-type bitSet [1]uint64
-
-const bitSetSize = len(bitSet{}) * 64
+type bitSet []uint64
 
 // test returns the status of bit i.
-func (s *bitSet) test(i int) bool {
+func (s bitSet) test(i int) bool {
 	idx, mask := idxMask(i)
-	return s[idx]&mask != 0
+	return idx < len(s) && s[idx]&mask != 0
 }
 
 // set sets bit i to true.
 func (s *bitSet) set(i int) {
 	idx, mask := idxMask(i)
-	s[idx] |= mask
+	if n := idx - len(*s); n >= 0 {
+		*s = append(*s, make(bitSet, n+1)...)
+	}
+	(*s)[idx] |= mask
 }
 
-// idxMask returns bitSet array index and mask for bit i.
+// staticBitSet prevents bitSet reallocation.
+type staticBitSet struct{ bitSet }
+
+// set sets bit i to true.
+func (s staticBitSet) set(i int) {
+	idx, mask := idxMask(i)
+	s.bitSet[idx] |= mask
+}
+
+// idxMask returns bitSet slice index and mask for bit i.
 func idxMask(i int) (int, uint64) {
 	return i >> 6, 1 << uint(i&63)
 }

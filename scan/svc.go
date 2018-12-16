@@ -91,6 +91,7 @@ type registry struct {
 type svcIface interface {
 	UpdateRequest(req *aws.Request)
 	HandleError(req *aws.Request, err *Err)
+	TFState(out interface{}) (bool, error)
 }
 
 // svc describes a scannable service.
@@ -191,8 +192,8 @@ func (s *svc) init(ctxMethod map[string]bool) {
 		out := send.Type.Out(0)
 		if outMap[out] != "" {
 			panic("scan: output type collision: " + out.String())
-		} else if out.Elem().NumField() > bitSetSize {
-			panic("scan: bitSet overflow: " + out.String())
+		} else if out.Elem().NumField() > maxFields {
+			panic("scan: typeBitSet overflow: " + out.String())
 		}
 		outMap[out] = api
 		for _, lnk := range links {
@@ -274,8 +275,8 @@ func apiName(q reflect.Type) string {
 		panic("scan: not a slice: " + q.String())
 	} else if q = q.Elem(); q.Kind() != reflect.Struct {
 		panic("scan: not a struct: " + q.String())
-	} else if q.NumField() > bitSetSize {
-		panic("scan: bitSet overflow: " + q.String())
+	} else if q.NumField() > maxFields {
+		panic("scan: typeBitSet overflow: " + q.String())
 	}
 	name := q.Name()
 	api := strings.TrimSuffix(name, "Input")
