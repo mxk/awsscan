@@ -21,6 +21,9 @@ import (
 
 	// Service registration
 	_ "github.com/LuminalHQ/cloudcover/awsscan/scan/svc"
+
+	// Provider registration
+	_ "github.com/LuminalHQ/cloudcover/x/tfaws"
 )
 
 type scanCmd struct {

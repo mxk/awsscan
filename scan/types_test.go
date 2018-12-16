@@ -65,6 +65,7 @@ func TestBitSet(t *testing.T) {
 		require.Equal(t, tc.want, fwd, "%+v", tc)
 		require.Equal(t, tc.want, rev, "%+v", tc)
 		require.Equal(t, tc.want, rnd, "%+v", tc)
+		require.Equal(t, len(tc.set), fwd.len(), "%+v", tc)
 	}
 	var s bitSet
 	require.Panics(t, func() { s.test(-1) })

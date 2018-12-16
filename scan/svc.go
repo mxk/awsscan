@@ -91,19 +91,19 @@ type registry struct {
 type svcIface interface {
 	UpdateRequest(req *aws.Request)
 	HandleError(req *aws.Request, err *Err)
-	TFState(out interface{}) (bool, error)
 }
 
 // svc describes a scannable service.
 type svc struct {
-	name      string              // Unique service name (client package name)
-	id        string              // Endpoint ID for region check
-	newClient reflect.Value       // func New(aws.Config) *T
-	typ       reflect.Type        // Type implementing svcIface
-	roots     []interface{}       // Root API inputs
-	links     []*link             // Link for each service root and method
-	api       map[string][]*link  // API name index
-	next      map[string][]string // API call graph (key called before values)
+	name      string                         // Unique service name (client package name)
+	id        string                         // Endpoint ID for region check
+	newClient reflect.Value                  // func New(aws.Config) *T
+	typ       reflect.Type                   // Type implementing svcIface
+	roots     []interface{}                  // Root API inputs
+	links     []*link                        // Link for each service root and method
+	api       map[string][]*link             // API name index
+	next      map[string][]string            // API call graph (key called before values)
+	procs     map[reflect.Type]reflect.Value // Output processing functions
 }
 
 // register adds a new scannable service to the registry.
@@ -143,7 +143,7 @@ func (r *registry) get() map[string]*svc {
 // client method that returns a request for each input. It is a node in a
 // directed acyclic graph, which defines the order of API calls. One API, such
 // as ListTagsForResource, may be referenced by multiple links, so there is an
-// N:1 relationship between service and client methods.
+// N:1 relationship between service methods and client methods.
 type link struct {
 	api   string        // API name
 	deps  []string      // APIs that must be called first (input method args)
@@ -152,12 +152,27 @@ type link struct {
 }
 
 func (s *svc) init(ctxMethod map[string]bool) {
-	linkPool := make([]link, len(s.roots)+s.typ.NumMethod()-len(ctxMethod))
-	s.links = make([]*link, 0, len(linkPool))
-	s.api = make(map[string][]*link, len(linkPool))
-	s.next = make(map[string][]string, len(linkPool))
+	// Identify link and output processing methods
+	s.procs = make(map[reflect.Type]reflect.Value)
+	boolType := reflect.TypeOf(false)
+	errorType := reflect.TypeOf((*error)(nil)).Elem()
+	var isLink bitSet
+	for i := s.typ.NumMethod() - 1; i >= 0; i-- {
+		m := s.typ.Method(i)
+		if ctxMethod[m.Name] {
+			continue
+		}
+		// TODO: Verify that the argument type is an SDK Output struct?
+		if m.Type.NumIn() == 2 && m.Type.NumOut() == 2 &&
+			m.Type.Out(0) == boolType && m.Type.Out(1) == errorType {
+			s.procs[m.Type.In(1)] = m.Func
+		} else {
+			isLink.set(i)
+		}
+	}
 
 	// Create links for each service root and method
+	linkPool := make([]link, len(s.roots)+isLink.len())
 	newLink := func(fn reflect.Value) {
 		lnk := &linkPool[len(s.links)]
 		lnk.api = apiName(fn.Type().Out(0))
@@ -165,6 +180,9 @@ func (s *svc) init(ctxMethod map[string]bool) {
 		s.links = append(s.links, lnk)
 		s.api[lnk.api] = append(s.api[lnk.api], lnk)
 	}
+	s.links = make([]*link, 0, len(linkPool))
+	s.api = make(map[string][]*link, len(linkPool))
+	s.next = make(map[string][]string, len(linkPool))
 	for i := range s.roots {
 		v := reflect.ValueOf(s.roots[i]) // []Input
 		t := v.Type()
@@ -178,8 +196,8 @@ func (s *svc) init(ctxMethod map[string]bool) {
 		}))
 	}
 	for i, n := 0, s.typ.NumMethod(); i < n; i++ {
-		if m := s.typ.Method(i); !ctxMethod[m.Name] {
-			newLink(m.Func)
+		if isLink.test(i) {
+			newLink(s.typ.Method(i).Func)
 		}
 	}
 

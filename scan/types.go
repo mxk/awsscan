@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"math/bits"
 	"reflect"
 	"sync"
 
@@ -89,6 +90,15 @@ func (s *bitSet) set(i int) {
 		*s = append(*s, make(bitSet, n+1)...)
 	}
 	(*s)[idx] |= mask
+}
+
+// len returns the number of bits set to true.
+func (s bitSet) len() int {
+	n := 0
+	for _, x := range s {
+		n += bits.OnesCount64(x)
+	}
+	return n
 }
 
 // staticBitSet prevents bitSet reallocation.

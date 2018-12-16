@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/LuminalHQ/cloudcover/x/arn"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/defaults"
 	tf "github.com/hashicorp/terraform/terraform"
@@ -45,9 +46,6 @@ func newCtx(cfg *aws.Config, ac arn.Ctx, svc *svc, opts Opts) *Ctx {
 		svc:    svc,
 		client: svc.newClient.Call([]reflect.Value{reflect.ValueOf(cpy)})[0],
 		run:    make(map[*link]*batch, len(svc.links)),
-	}
-	if ctx.Mode(TFState) {
-		ctx.Resources = make(map[string]*tf.ResourceState)
 	}
 	iface := reflect.New(svc.typ).Elem()
 	iface.FieldByName("Ctx").Set(reflect.ValueOf(ctx))
@@ -138,6 +136,28 @@ func (*Ctx) Group(dst interface{}, dstField string, src interface{}, srcField st
 	}
 }
 
+// Strings extracts string values from a slice of structs or struct pointers
+// containing the named field.
+func (ctx *Ctx) Strings(src interface{}, srcField string) []string {
+	sv, n := sliceValue(src)
+	if n == 0 {
+		return nil
+	}
+	sf := -1
+	if srcField != "" {
+		sf, _ = fieldByName(sv.Type(), srcField)
+	}
+	out := make([]string, n)
+	for i := 0; i < n; i++ {
+		v := ptrTo(sv, i, sf).Elem()
+		if v.Kind() != reflect.String {
+			panic("scan: not a string field")
+		}
+		out[i] = v.String()
+	}
+	return out
+}
+
 // output is an interface implemented by all SDK Output structs.
 type output interface {
 	SDKResponseMetadata() aws.Response
@@ -166,10 +186,37 @@ func (*Ctx) CopyInput(dst interface{}, field string, out output) {
 	}
 }
 
-// TFState converts an SDK Output struct into zero or more Terraform resource
-// states, updating Ctx.Map.Resources as necessary. If it returns false, all API
-// calls that depend on out are skipped.
-func (*Ctx) TFState(out interface{}) (bool, error) { return false, nil }
+// NewResource adds new ResourceState for the specified resource type and ID to
+// ctx.Resources.
+func (ctx *Ctx) NewResource(typ, id string) (*tf.ResourceState, error) {
+	k, r, err := tfx.Providers.NewResource(typ, id)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Add region to key
+	if ctx.Resources == nil {
+		ctx.Resources = make(map[string]*tf.ResourceState)
+	} else if _, dup := ctx.Resources[k]; dup {
+		return nil, fmt.Errorf("resource state key collision: %q", k)
+	}
+	ctx.Resources[k] = r
+	return r, nil
+}
+
+// MakeResources calls NewResource for each ids value. If fn is not nil, it is
+// called for each new resource.
+func (ctx *Ctx) MakeResources(typ string, ids []string, fn func(r *tf.ResourceState)) error {
+	for _, id := range ids {
+		r, err := ctx.NewResource(typ, id)
+		if err != nil {
+			return err
+		}
+		if fn != nil {
+			fn(r)
+		}
+	}
+	return nil
+}
 
 // tryNext tries to run all links that depend on api.
 func (ctx *Ctx) tryNext(api string) {
@@ -301,18 +348,7 @@ func (ctx *Ctx) done(c *Call) bool {
 	if c.Err != nil && c.Err.Code != "" && len(c.Out) == 0 {
 		ctx.iface.HandleError(c.req, c.Err)
 	}
-	if ctx.Mode(TFState) {
-		for i, out := range c.Out {
-			use, err := ctx.iface.TFState(out)
-			if err != nil {
-				// TODO: Pass up to scanner and terminate scan?
-				panic("scan: service tfstate error: " + err.Error())
-			}
-			if !use {
-				c.skipOut.set(i)
-			}
-		}
-	}
+	ctx.processOutputs(c)
 	b := c.bat
 	c.bat = nil
 	c.req = nil
@@ -320,6 +356,33 @@ func (ctx *Ctx) done(c *Call) bool {
 		ctx.finish(b)
 	}
 	return len(ctx.run) == 0
+}
+
+// processOutputs calls processing service methods on all call outputs.
+func (ctx *Ctx) processOutputs(c *Call) {
+	if !ctx.Mode(TFState) || len(c.Out) == 0 {
+		return
+	}
+	fn := ctx.svc.procs[reflect.TypeOf(c.Out[0])]
+	if !fn.IsValid() {
+		for i := range c.Out {
+			c.skipOut.set(i)
+		}
+		return
+	}
+	args := []reflect.Value{reflect.ValueOf(ctx.iface), {}}
+	for i, out := range c.Out {
+		args[1] = reflect.ValueOf(out)
+		useErr := fn.Call(args)
+		if !useErr[1].IsNil() {
+			// TODO: Pass up to scanner and terminate scan?
+			err := useErr[1].Interface().(error)
+			panic("scan: service tfstate error: " + err.Error())
+		}
+		if !useErr[0].Bool() {
+			c.skipOut.set(i)
+		}
+	}
 }
 
 // finish combines calls from related batches into ctx.out.

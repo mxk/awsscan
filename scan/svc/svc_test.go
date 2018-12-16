@@ -92,7 +92,8 @@ func newSvc(iface svcIface, ctxMethod map[string]bool) *svc {
 	t := v.Type()
 	namePrefix := t.Name() + "."
 	for i := v.NumMethod() - 1; i >= 0; i-- {
-		if m := t.Method(i); !ctxMethod[m.Name] {
+		// TODO: Make this filtering more robust
+		if m := t.Method(i); !ctxMethod[m.Name] && m.Type.NumOut() == 1 {
 			s.methods[namePrefix+m.Name] = v.Method(i)
 			in := m.Type.Out(0).Elem()
 			s.inputs[apiName(in)] = in
