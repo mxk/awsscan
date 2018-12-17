@@ -116,7 +116,7 @@ func (s iamSvc) ListUserPolicies(lu *iam.ListUsersOutput) (q []iam.ListUserPolic
 }
 
 //
-// Post-processing methods
+// Post-processing
 //
 
 func (s iamSvc) AccessKeys(out *iam.ListAccessKeysOutput) error {
