@@ -103,7 +103,7 @@ type svc struct {
 	links     []*link                        // Link for each service root and method
 	api       map[string][]*link             // API name index
 	next      map[string][]string            // API call graph (key called before values)
-	procs     map[reflect.Type]reflect.Value // Output processing functions
+	postProc  map[reflect.Type]reflect.Value // Output post-processing methods
 }
 
 // register adds a new scannable service to the registry.
@@ -145,16 +145,16 @@ func (r *registry) get() map[string]*svc {
 // as ListTagsForResource, may be referenced by multiple links, so there is an
 // N:1 relationship between service methods and client methods.
 type link struct {
-	api   string        // API name
-	deps  []string      // APIs that must be called first (input method args)
-	input reflect.Value // Service method to get input
-	req   reflect.Value // Client method to create request
+	api      string        // API name
+	deps     []string      // APIs that must be called first (input method args)
+	input    reflect.Value // Service method to get input
+	req      reflect.Value // Client method to create request
+	postProc bool          // Is this link needed for post-processing?
 }
 
 func (s *svc) init(ctxMethod map[string]bool) {
-	// Identify link and output processing methods
-	s.procs = make(map[reflect.Type]reflect.Value)
-	boolType := reflect.TypeOf(false)
+	// Identify link and output post-processing methods
+	s.postProc = make(map[reflect.Type]reflect.Value)
 	errorType := reflect.TypeOf((*error)(nil)).Elem()
 	var isLink bitSet
 	for i := s.typ.NumMethod() - 1; i >= 0; i-- {
@@ -162,10 +162,13 @@ func (s *svc) init(ctxMethod map[string]bool) {
 		if ctxMethod[m.Name] {
 			continue
 		}
-		// TODO: Verify that the argument type is an SDK Output struct?
-		if m.Type.NumIn() == 2 && m.Type.NumOut() == 2 &&
-			m.Type.Out(0) == boolType && m.Type.Out(1) == errorType {
-			s.procs[m.Type.In(1)] = m.Func
+		if m.Type.NumIn() == 2 && m.Type.NumOut() == 1 &&
+			m.Type.Out(0) == errorType {
+			out := m.Type.In(1)
+			if _, dup := s.postProc[out]; dup {
+				panic("scan: multiple post-process methods: " + out.String())
+			}
+			s.postProc[out] = m.Func
 		} else {
 			isLink.set(i)
 		}
@@ -214,8 +217,16 @@ func (s *svc) init(ctxMethod map[string]bool) {
 			panic("scan: typeBitSet overflow: " + out.String())
 		}
 		outMap[out] = api
+		postProc := s.postProc[out].IsValid()
 		for _, lnk := range links {
 			lnk.req = req.Func
+			lnk.postProc = postProc
+		}
+	}
+	for out := range s.postProc {
+		if outMap[out] == "" {
+			panic("scan: unsatisfied post-process method input: " +
+				out.String())
 		}
 	}
 
@@ -230,6 +241,11 @@ func (s *svc) init(ctxMethod map[string]bool) {
 				if lnk.deps[i], ok = outMap[out]; !ok {
 					panic("scan: unsatisfied dependency: " +
 						out.String() + " -> " + fn.Out(0).String())
+				}
+				if lnk.postProc {
+					for _, dep := range s.api[lnk.deps[i]] {
+						dep.postProc = true
+					}
 				}
 			}
 		}

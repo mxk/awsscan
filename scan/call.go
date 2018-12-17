@@ -22,9 +22,8 @@ type Call struct {
 	Out   []interface{}  `json:"out,omitempty"`    // API *Output struct
 	Err   *Err           `json:"err,omitempty"`    // Decoded error
 
-	bat     *batch
-	req     *aws.Request
-	skipOut bitSet
+	bat *batch
+	req *aws.Request
 }
 
 // id generates a base64-encoded SHA-512/256 call ID. The hashed string is:

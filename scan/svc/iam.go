@@ -113,21 +113,59 @@ func (s iamSvc) ListUserPolicies(lu *iam.ListUsersOutput) (q []iam.ListUserPolic
 	return
 }
 
-func (s iamSvc) AccessKeyResource(out *iam.ListAccessKeysOutput) (bool, error) {
-	return false, s.MakeResources("aws_iam_access_key", tfx.AttrGen{
+func (s iamSvc) AccessKey(out *iam.ListAccessKeysOutput) error {
+	return s.MakeResources("aws_iam_access_key", tfx.AttrGen{
 		"id":   s.Strings(out.AccessKeyMetadata, "AccessKeyId"),
 		"user": func(i int) string { return *out.AccessKeyMetadata[i].UserName },
 	})
 }
 
-func (s iamSvc) AccountPasswordPolicyResource(*iam.GetAccountPasswordPolicyOutput) (bool, error) {
-	return false, s.MakeResources("aws_iam_account_password_policy", tfx.AttrGen{
+func (s iamSvc) AccountPasswordPolicy(*iam.GetAccountPasswordPolicyOutput) error {
+	return s.ImportResources("aws_iam_account_password_policy", tfx.AttrGen{
 		"id": "PasswordPolicy",
 	})
 }
 
-func (s iamSvc) UserResource(out *iam.ListUsersOutput) (bool, error) {
-	return true, s.ImportResources("aws_iam_user", tfx.AttrGen{
+func (s iamSvc) GroupPolicy(out *iam.ListGroupPoliciesOutput) error {
+	group := *s.Input(out).(*iam.ListGroupPoliciesInput).GroupName
+	return s.MakeResources("aws_iam_group_policy", tfx.AttrGen{
+		"#":  len(out.PolicyNames),
+		"id": func(i int) string { return group + ":" + out.PolicyNames[i] },
+	})
+}
+
+func (s iamSvc) GroupPolicyAttachment(out *iam.ListAttachedGroupPoliciesOutput) error {
+	group := *s.Input(out).(*iam.ListAttachedGroupPoliciesInput).GroupName
+	return s.ImportResources("aws_iam_group_policy_attachment", tfx.AttrGen{
+		"#":  len(out.AttachedPolicies),
+		"id": func(i int) string { return group + "/" + *out.AttachedPolicies[i].PolicyArn },
+	})
+}
+
+func (s iamSvc) GroupResource(out *iam.ListGroupsOutput) error {
+	names := s.Strings(out.Groups, "GroupName")
+	return firstError(
+		s.ImportResources("aws_iam_group", tfx.AttrGen{
+			"id": names,
+		}),
+		s.MakeResources("aws_iam_group_membership", tfx.AttrGen{
+			"id":    names,
+			"group": names,
+		}),
+	)
+}
+
+func (s iamSvc) User(out *iam.ListUsersOutput) error {
+	return s.ImportResources("aws_iam_user", tfx.AttrGen{
 		"id": s.Strings(out.Users, "UserName"),
 	})
+}
+
+func firstError(errs ...error) error {
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

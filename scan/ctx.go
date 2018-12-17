@@ -232,6 +232,9 @@ func (ctx *Ctx) tryRun(lnk *link) {
 			b.ctx.finish(b)
 		}
 	}(b)
+	if ctx.Mode(TFState) && !lnk.postProc {
+		return // Link not needed for output post-processing
+	}
 
 	// Extract all dependencies from ctx.out
 	type src struct {
@@ -246,9 +249,7 @@ func (ctx *Ctx) tryRun(lnk *link) {
 		srcs := make([]src, 0, len(calls))
 		for _, c := range calls {
 			for i, out := range c.Out {
-				if !c.skipOut.test(i) {
-					srcs = append(srcs, src{c, i, reflect.ValueOf(out)})
-				}
+				srcs = append(srcs, src{c, i, reflect.ValueOf(out)})
 			}
 		}
 		if len(srcs) == 0 {
@@ -328,7 +329,7 @@ func (ctx *Ctx) done(c *Call) bool {
 	if c.Err != nil && c.Err.Code != "" && len(c.Out) == 0 {
 		ctx.iface.HandleError(c.req, c.Err)
 	}
-	ctx.processOutputs(c)
+	ctx.postProcess(c)
 	b := c.bat
 	c.bat = nil
 	c.req = nil
@@ -338,29 +339,22 @@ func (ctx *Ctx) done(c *Call) bool {
 	return len(ctx.run) == 0
 }
 
-// processOutputs calls processing service methods on all call outputs.
-func (ctx *Ctx) processOutputs(c *Call) {
-	if !ctx.Mode(TFState) || len(c.Out) == 0 {
+// postProcess calls post-processing service methods on all call outputs.
+func (ctx *Ctx) postProcess(c *Call) {
+	if !ctx.Mode(TFState) || len(c.Out) == 0 || !c.bat.lnk.postProc {
 		return
 	}
-	fn := ctx.svc.procs[reflect.TypeOf(c.Out[0])]
+	fn := ctx.svc.postProc[reflect.TypeOf(c.Out[0])]
 	if !fn.IsValid() {
-		for i := range c.Out {
-			c.skipOut.set(i)
-		}
 		return
 	}
 	args := []reflect.Value{reflect.ValueOf(ctx.iface), {}}
-	for i, out := range c.Out {
+	for _, out := range c.Out {
 		args[1] = reflect.ValueOf(out)
-		useErr := fn.Call(args)
-		if !useErr[1].IsNil() {
+		if err := fn.Call(args)[0]; !err.IsNil() {
 			// TODO: Pass up to scanner and terminate scan?
-			err := useErr[1].Interface().(error)
+			err := err.Interface().(error)
 			panic("scan: service tfstate error: " + err.Error())
-		}
-		if !useErr[0].Bool() {
-			c.skipOut.set(i)
 		}
 	}
 }
