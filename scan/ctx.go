@@ -63,7 +63,7 @@ func TestCtx(iface interface{}) *Ctx {
 			return newCtx(&cfg, ac, svc, Opts{})
 		}
 	}
-	panic(t.String() + " is not registered")
+	panic("scan: " + t.String() + " is not registered")
 }
 
 // Mode returns true if all mode bits in test are enabled.
@@ -186,36 +186,16 @@ func (*Ctx) CopyInput(dst interface{}, field string, out output) {
 	}
 }
 
-// NewResource adds new ResourceState for the specified resource type and ID to
-// ctx.Resources.
-func (ctx *Ctx) NewResource(typ, id string) (*tf.ResourceState, error) {
-	k, r, err := tfx.Providers.NewResource(typ, id)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: Add region to key
-	if ctx.Resources == nil {
-		ctx.Resources = make(map[string]*tf.ResourceState)
-	} else if _, dup := ctx.Resources[k]; dup {
-		return nil, fmt.Errorf("resource state key collision: %q", k)
-	}
-	ctx.Resources[k] = r
-	return r, nil
+// MakeResources adds new resources to ctx.Resources. See MakeResources method
+// of tfx.ProviderMap for more info.
+func (ctx *Ctx) MakeResources(typ string, attrs tfx.AttrGen) error {
+	return ctx.addResources(tfx.Providers.MakeResources(typ, attrs))
 }
 
-// MakeResources calls NewResource for each ids value. If fn is not nil, it is
-// called for each new resource.
-func (ctx *Ctx) MakeResources(typ string, ids []string, fn func(r *tf.ResourceState)) error {
-	for _, id := range ids {
-		r, err := ctx.NewResource(typ, id)
-		if err != nil {
-			return err
-		}
-		if fn != nil {
-			fn(r)
-		}
-	}
-	return nil
+// ImportResources adds new resources to ctx.Resources. See ImportResources
+// method of tfx.ProviderMap for more info.
+func (ctx *Ctx) ImportResources(typ string, attrs tfx.AttrGen) error {
+	return ctx.addResources(tfx.Providers.ImportResources(typ, attrs))
 }
 
 // tryNext tries to run all links that depend on api.
@@ -402,6 +382,24 @@ func (ctx *Ctx) finish(b *batch) {
 	}
 	ctx.Calls[api] = out
 	ctx.tryNext(api)
+}
+
+// addResources adds new resources to ctx.Resources.
+func (ctx *Ctx) addResources(rs []tfx.Resource, err error) error {
+	if len(rs) == 0 || err != nil {
+		return err
+	}
+	if ctx.Resources == nil {
+		ctx.Resources = make(map[string]*tf.ResourceState, len(rs))
+	}
+	for _, r := range rs {
+		// TODO: Update key with region
+		if _, dup := ctx.Resources[r.Key]; dup {
+			panic("scan: resource state key collision: " + r.Key)
+		}
+		ctx.Resources[r.Key] = r.ResourceState
+	}
+	return nil
 }
 
 // batch contains all calls for one link.
