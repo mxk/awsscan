@@ -15,8 +15,10 @@ var _ = scan.Register(iam.EndpointsID, iam.New, iamSvc{},
 	[]iam.GetAccountPasswordPolicyInput{},
 	[]iam.ListGroupsInput{},
 	[]iam.ListInstanceProfilesInput{},
+	[]iam.ListOpenIDConnectProvidersInput{},
 	[]iam.ListPoliciesInput{{Scope: iam.PolicyScopeTypeLocal}},
 	[]iam.ListRolesInput{},
+	[]iam.ListSAMLProvidersInput{},
 	[]iam.ListUsersInput{},
 )
 
@@ -113,7 +115,11 @@ func (s iamSvc) ListUserPolicies(lu *iam.ListUsersOutput) (q []iam.ListUserPolic
 	return
 }
 
-func (s iamSvc) AccessKey(out *iam.ListAccessKeysOutput) error {
+//
+// Post-processing methods
+//
+
+func (s iamSvc) AccessKeys(out *iam.ListAccessKeysOutput) error {
 	return s.MakeResources("aws_iam_access_key", tfx.AttrGen{
 		"id":   s.Strings(out.AccessKeyMetadata, "AccessKeyId"),
 		"user": func(i int) string { return *out.AccessKeyMetadata[i].UserName },
@@ -126,7 +132,7 @@ func (s iamSvc) AccountPasswordPolicy(*iam.GetAccountPasswordPolicyOutput) error
 	})
 }
 
-func (s iamSvc) GroupPolicy(out *iam.ListGroupPoliciesOutput) error {
+func (s iamSvc) GroupPolicies(out *iam.ListGroupPoliciesOutput) error {
 	group := *s.Input(out).(*iam.ListGroupPoliciesInput).GroupName
 	return s.MakeResources("aws_iam_group_policy", tfx.AttrGen{
 		"#":  len(out.PolicyNames),
@@ -134,7 +140,7 @@ func (s iamSvc) GroupPolicy(out *iam.ListGroupPoliciesOutput) error {
 	})
 }
 
-func (s iamSvc) GroupPolicyAttachment(out *iam.ListAttachedGroupPoliciesOutput) error {
+func (s iamSvc) GroupPolicyAttachments(out *iam.ListAttachedGroupPoliciesOutput) error {
 	group := *s.Input(out).(*iam.ListAttachedGroupPoliciesInput).GroupName
 	return s.ImportResources("aws_iam_group_policy_attachment", tfx.AttrGen{
 		"#":  len(out.AttachedPolicies),
@@ -142,7 +148,7 @@ func (s iamSvc) GroupPolicyAttachment(out *iam.ListAttachedGroupPoliciesOutput) 
 	})
 }
 
-func (s iamSvc) GroupResource(out *iam.ListGroupsOutput) error {
+func (s iamSvc) Groups(out *iam.ListGroupsOutput) error {
 	names := s.Strings(out.Groups, "GroupName")
 	return firstError(
 		s.ImportResources("aws_iam_group", tfx.AttrGen{
@@ -155,9 +161,71 @@ func (s iamSvc) GroupResource(out *iam.ListGroupsOutput) error {
 	)
 }
 
+func (s iamSvc) InstanceProfiles(out *iam.ListInstanceProfilesOutput) error {
+	return s.ImportResources("aws_iam_instance_profile", tfx.AttrGen{
+		"id": s.Strings(out.InstanceProfiles, "InstanceProfileName"),
+	})
+}
+
+func (s iamSvc) OpenIDConnectProviders(out *iam.ListOpenIDConnectProvidersOutput) error {
+	return s.ImportResources("aws_iam_openid_connect_provider", tfx.AttrGen{
+		"id": s.Strings(out.OpenIDConnectProviderList, "Arn"),
+	})
+}
+
+func (s iamSvc) Policies(out *iam.ListPoliciesOutput) error {
+	return s.ImportResources("aws_iam_policy", tfx.AttrGen{
+		"id": s.Strings(out.Policies, "Arn"),
+	})
+}
+
+func (s iamSvc) Roles(out *iam.ListRolesOutput) error {
+	return s.ImportResources("aws_iam_role", tfx.AttrGen{
+		"id": s.Strings(out.Roles, "RoleName"),
+	})
+}
+
+func (s iamSvc) RolePolicies(out *iam.ListRolePoliciesOutput) error {
+	role := *s.Input(out).(*iam.ListRolePoliciesInput).RoleName
+	return s.ImportResources("aws_iam_role_policy", tfx.AttrGen{
+		"#":  len(out.PolicyNames),
+		"id": func(i int) string { return role + ":" + out.PolicyNames[i] },
+	})
+}
+
+func (s iamSvc) RolePolicyAttachments(out *iam.ListAttachedRolePoliciesOutput) error {
+	role := *s.Input(out).(*iam.ListAttachedRolePoliciesInput).RoleName
+	return s.ImportResources("aws_iam_role_policy_attachment", tfx.AttrGen{
+		"#":  len(out.AttachedPolicies),
+		"id": func(i int) string { return role + "/" + *out.AttachedPolicies[i].PolicyArn },
+	})
+}
+
+func (s iamSvc) SAMLProviders(out *iam.ListSAMLProvidersOutput) error {
+	return s.ImportResources("aws_iam_saml_provider", tfx.AttrGen{
+		"id": s.Strings(out.SAMLProviderList, "Arn"),
+	})
+}
+
 func (s iamSvc) User(out *iam.ListUsersOutput) error {
 	return s.ImportResources("aws_iam_user", tfx.AttrGen{
 		"id": s.Strings(out.Users, "UserName"),
+	})
+}
+
+func (s iamSvc) UserPolicies(out *iam.ListUserPoliciesOutput) error {
+	user := *s.Input(out).(*iam.ListUserPoliciesInput).UserName
+	return s.ImportResources("aws_iam_user_policy", tfx.AttrGen{
+		"#":  len(out.PolicyNames),
+		"id": func(i int) string { return user + ":" + out.PolicyNames[i] },
+	})
+}
+
+func (s iamSvc) UserPolicyAttachments(out *iam.ListAttachedUserPoliciesOutput) error {
+	user := *s.Input(out).(*iam.ListAttachedUserPoliciesInput).UserName
+	return s.ImportResources("aws_iam_user_policy_attachment", tfx.AttrGen{
+		"#":  len(out.AttachedPolicies),
+		"id": func(i int) string { return user + "/" + *out.AttachedPolicies[i].PolicyArn },
 	})
 }
 
