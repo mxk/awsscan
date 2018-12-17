@@ -242,11 +242,6 @@ func (s *svc) init(ctxMethod map[string]bool) {
 					panic("scan: unsatisfied dependency: " +
 						out.String() + " -> " + fn.Out(0).String())
 				}
-				if lnk.postProc {
-					for _, dep := range s.api[lnk.deps[i]] {
-						dep.postProc = true
-					}
-				}
 			}
 		}
 	}
@@ -301,6 +296,13 @@ func (s *svc) init(ctxMethod map[string]bool) {
 			panic("scan: " + s.name + " dependency cycle: " + cycle.String())
 		}
 	}
+
+	// Propagate postProc flag
+	for _, lnk := range s.links {
+		if len(lnk.deps) > 0 && lnk.postProc {
+			postProcDeps(s.api, lnk.deps)
+		}
+	}
 }
 
 // apiName extracts service API name from []XyzInput type.
@@ -326,4 +328,14 @@ func getMethod(t reflect.Type, name string) reflect.Method {
 		return m
 	}
 	panic("scan: method not found: " + t.String() + "." + name)
+}
+
+// postProcDeps recursively sets postProc flag for all APIs in deps.
+func postProcDeps(api map[string][]*link, deps []string) {
+	for _, dep := range deps {
+		for _, lnk := range api[dep] {
+			lnk.postProc = true
+			postProcDeps(api, lnk.deps)
+		}
+	}
 }
