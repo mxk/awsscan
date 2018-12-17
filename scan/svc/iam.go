@@ -12,6 +12,7 @@ import (
 type iamSvc struct{ *scan.Ctx }
 
 var _ = scan.Register(iam.EndpointsID, iam.New, iamSvc{},
+	[]iam.GetAccountPasswordPolicyInput{},
 	[]iam.ListGroupsInput{},
 	[]iam.ListInstanceProfilesInput{},
 	[]iam.ListPoliciesInput{{Scope: iam.PolicyScopeTypeLocal}},
@@ -20,8 +21,12 @@ var _ = scan.Register(iam.EndpointsID, iam.New, iamSvc{},
 )
 
 func (iamSvc) HandleError(req *aws.Request, err *scan.Err) {
-	err.Ignore = err.Status == http.StatusNotFound &&
-		req.Operation.Name == "GetLoginProfile"
+	if err.Status == http.StatusNotFound {
+		switch req.Operation.Name {
+		case "GetAccountPasswordPolicy", "GetLoginProfile":
+			err.Ignore = true
+		}
+	}
 }
 
 func (s iamSvc) GetLoginProfile(lu *iam.ListUsersOutput) (q []iam.GetLoginProfileInput) {
@@ -112,6 +117,12 @@ func (s iamSvc) AccessKeyResource(out *iam.ListAccessKeysOutput) (bool, error) {
 	return false, s.MakeResources("aws_iam_access_key", tfx.AttrGen{
 		"id":   s.Strings(out.AccessKeyMetadata, "AccessKeyId"),
 		"user": func(i int) string { return *out.AccessKeyMetadata[i].UserName },
+	})
+}
+
+func (s iamSvc) AccountPasswordPolicyResource(*iam.GetAccountPasswordPolicyOutput) (bool, error) {
+	return false, s.MakeResources("aws_iam_account_password_policy", tfx.AttrGen{
+		"id": "PasswordPolicy",
 	})
 }
 
