@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 )
@@ -57,6 +58,11 @@ func (s iamSvc) GetUserPolicy(lup *iam.ListUserPoliciesOutput) (q []iam.GetUserP
 	return
 }
 
+func (s iamSvc) ListAccessKeys(lu *iam.ListUsersOutput) (q []iam.ListAccessKeysInput) {
+	s.Split(&q, "UserName", lu.Users, "UserName")
+	return
+}
+
 func (s iamSvc) ListAttachedGroupPolicies(lg *iam.ListGroupsOutput) (q []iam.ListAttachedGroupPoliciesInput) {
 	s.Split(&q, "GroupName", lg.Groups, "GroupName")
 	return
@@ -102,6 +108,15 @@ func (s iamSvc) ListUserPolicies(lu *iam.ListUsersOutput) (q []iam.ListUserPolic
 	return
 }
 
+func (s iamSvc) AccessKeyResource(out *iam.ListAccessKeysOutput) (bool, error) {
+	return false, s.MakeResources("aws_iam_access_key", tfx.AttrGen{
+		"id":   s.Strings(out.AccessKeyMetadata, "AccessKeyId"),
+		"user": func(i int) string { return *out.AccessKeyMetadata[i].UserName },
+	})
+}
+
 func (s iamSvc) UserResource(out *iam.ListUsersOutput) (bool, error) {
-	return false, s.MakeResources("aws_iam_user", s.Strings(out.Users, "UserName"), nil)
+	return true, s.ImportResources("aws_iam_user", tfx.AttrGen{
+		"id": s.Strings(out.Users, "UserName"),
+	})
 }
