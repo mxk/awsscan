@@ -2,6 +2,7 @@ package svc
 
 import (
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
@@ -14,4 +15,14 @@ var _ = scan.Register(dynamodb.EndpointsID, dynamodb.New, dynamodbSvc{},
 func (s dynamodbSvc) DescribeTable(lt *dynamodb.ListTablesOutput) (q []dynamodb.DescribeTableInput) {
 	s.Split(&q, "TableName", lt.TableNames, "")
 	return
+}
+
+//
+// Post-processing
+//
+
+func (s dynamodbSvc) Tables(out *dynamodb.ListTablesOutput) error {
+	return s.ImportResources("aws_dynamodb_table", tfx.AttrGen{
+		"id": out.TableNames,
+	})
 }
