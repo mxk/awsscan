@@ -148,7 +148,7 @@ func (ctx *Ctx) Strings(src interface{}, srcField string) []string {
 		sf, _ = fieldByName(sv.Type(), srcField)
 	}
 	out := make([]string, n)
-	for i := 0; i < n; i++ {
+	for i := range out {
 		v := ptrTo(sv, i, sf).Elem()
 		if v.Kind() != reflect.String {
 			panic("scan: not a string field")

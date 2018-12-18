@@ -149,14 +149,15 @@ func (s iamSvc) GroupPolicyAttachments(out *iam.ListAttachedGroupPoliciesOutput)
 }
 
 func (s iamSvc) Groups(out *iam.ListGroupsOutput) error {
-	names := s.Strings(out.Groups, "GroupName")
+	name := s.Strings(out.Groups, "GroupName")
 	return firstError(
 		s.ImportResources("aws_iam_group", tfx.AttrGen{
-			"id": names,
+			"id": name,
 		}),
 		s.MakeResources("aws_iam_group_membership", tfx.AttrGen{
-			"id":    names,
-			"group": names,
+			"id":    name,
+			"group": name,
+			"name":  name,
 		}),
 	)
 }
