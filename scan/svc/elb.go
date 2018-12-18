@@ -1,7 +1,10 @@
 package svc
 
 import (
+	"strconv"
+
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/service/elb"
 )
 
@@ -21,7 +24,11 @@ func (s elbSvc) DescribeLoadBalancerAttributes(dlb *elb.DescribeLoadBalancersOut
 	return
 }
 
-func (elbSvc) DescribeLoadBalancerPolicies(dlb *elb.DescribeLoadBalancersOutput) (q []elb.DescribeLoadBalancerPoliciesInput) {
+func (s elbSvc) DescribeLoadBalancerPolicies(dlb *elb.DescribeLoadBalancersOutput) (q []elb.DescribeLoadBalancerPoliciesInput) {
+	if !s.Mode(scan.CloudAssert) {
+		s.Split(&q, "LoadBalancerName", dlb.LoadBalancerDescriptions, "LoadBalancerName")
+		return
+	}
 	for i := range dlb.LoadBalancerDescriptions {
 		lb := &dlb.LoadBalancerDescriptions[i]
 		for j := range lb.ListenerDescriptions {
@@ -35,4 +42,50 @@ func (elbSvc) DescribeLoadBalancerPolicies(dlb *elb.DescribeLoadBalancersOutput)
 		}
 	}
 	return
+}
+
+//
+// Post-processing
+//
+
+func (s elbSvc) LoadBalancerPolicies(out *elb.DescribeLoadBalancerPoliciesOutput) error {
+	name := *s.Input(out).(*elb.DescribeLoadBalancerPoliciesInput).LoadBalancerName
+	return s.MakeResources("aws_load_balancer_policy", tfx.AttrGen{
+		"#":  len(out.PolicyDescriptions),
+		"id": func(i int) string { return name + ":" + *out.PolicyDescriptions[i].PolicyName },
+	})
+}
+
+func (s elbSvc) LoadBalancers(out *elb.DescribeLoadBalancersOutput) error {
+	for i := range out.LoadBalancerDescriptions {
+		lb := &out.LoadBalancerDescriptions[i]
+		name := *lb.LoadBalancerName
+		err := firstError(
+			s.ImportResources("aws_elb", tfx.AttrGen{"id": name}),
+			s.backendServerPolicies(name, lb.BackendServerDescriptions),
+			s.listenerPolicies(name, lb.ListenerDescriptions),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s elbSvc) backendServerPolicies(name string, out []elb.BackendServerDescription) error {
+	return s.MakeResources("aws_load_balancer_backend_server_policy", tfx.AttrGen{
+		"#":  len(out),
+		"id": func(i int) string { return elbPort(name, out[i].InstancePort) },
+	})
+}
+
+func (s elbSvc) listenerPolicies(name string, out []elb.ListenerDescription) error {
+	return s.MakeResources("aws_load_balancer_listener_policy", tfx.AttrGen{
+		"#":  len(out),
+		"id": func(i int) string { return elbPort(name, out[i].Listener.LoadBalancerPort) },
+	})
+}
+
+func elbPort(name string, port *int64) string {
+	return name + ":" + strconv.FormatInt(*port, 10)
 }
