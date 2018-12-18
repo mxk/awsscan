@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/LuminalHQ/cloudcover/x/arn"
@@ -149,11 +150,14 @@ func (ctx *Ctx) Strings(src interface{}, srcField string) []string {
 	}
 	out := make([]string, n)
 	for i := range out {
-		v := ptrTo(sv, i, sf).Elem()
-		if v.Kind() != reflect.String {
-			panic("scan: not a string field")
+		switch v := ptrTo(sv, i, sf).Elem(); v.Kind() {
+		case reflect.String:
+			out[i] = v.String()
+		case reflect.Int64:
+			out[i] = strconv.FormatInt(v.Int(), 10)
+		default:
+			panic("scan: unsupported field type: " + v.Type().String())
 		}
-		out[i] = v.String()
 	}
 	return out
 }
