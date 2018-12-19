@@ -155,6 +155,8 @@ func (ctx *Ctx) Strings(src interface{}, srcField string) []string {
 			out[i] = v.String()
 		case reflect.Int64:
 			out[i] = strconv.FormatInt(v.Int(), 10)
+		case reflect.Invalid:
+			// nil pointer
 		default:
 			panic("scan: unsupported field type: " + v.Type().String())
 		}
