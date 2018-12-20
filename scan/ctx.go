@@ -393,11 +393,18 @@ func (ctx *Ctx) addResources(rs []tfx.Resource, err error) error {
 		ctx.Resources = make(map[string]*tf.ResourceState, len(rs))
 	}
 	for _, r := range rs {
-		// TODO: Update key with region
-		if _, dup := ctx.Resources[r.Key]; dup {
-			panic("scan: resource state key collision: " + r.Key)
+		id := r.Key[strings.IndexByte(r.Key, '.')+1:]
+		r.Key = r.Type + "." + ctx.Region + "_" + id
+		k, i := r.Key, 0
+		for ctx.Resources[k] != nil {
+			i++
+			k = r.Key + "_" + strconv.Itoa(i)
 		}
-		ctx.Resources[r.Key] = r.ResourceState
+		if !strings.HasSuffix(ctx.Region, "-global") &&
+			!strings.Contains(ctx.Region, "fips") {
+			r.Provider += "." + ctx.Region
+		}
+		ctx.Resources[k] = r.ResourceState
 	}
 	return nil
 }
