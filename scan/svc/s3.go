@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -68,13 +69,74 @@ func (s s3Svc) GetBucketWebsite(gbl *s3.GetBucketLocationOutput) (q []s3.GetBuck
 	return
 }
 
-func (s s3Svc) setBucketName(q interface{}, gbl *s3.GetBucketLocationOutput) {
-	// TODO: Is "EU" ever used?
-	loc := string(gbl.LocationConstraint)
-	if loc == s.Region || (loc == "" && s.Region == endpoints.UsEast1RegionID) {
-		name := s.Input(gbl).(*s3.GetBucketLocationInput).Bucket
+func (s s3Svc) ListBucketInventoryConfigurations(gbl *s3.GetBucketLocationOutput) (q []s3.ListBucketInventoryConfigurationsInput) {
+	// Pagination missing from SDK: https://github.com/aws/aws-sdk-go-v2/issues/256
+	s.setBucketName(&q, gbl)
+	return
+}
+
+func (s s3Svc) ListBucketMetricsConfigurations(gbl *s3.GetBucketLocationOutput) (q []s3.ListBucketMetricsConfigurationsInput) {
+	s.setBucketName(&q, gbl)
+	return
+}
+
+func (s s3Svc) setBucketName(q interface{}, out *s3.GetBucketLocationOutput) {
+	if s.inRegion(out) {
+		name := s.Input(out).(*s3.GetBucketLocationInput).Bucket
 		v := reflect.MakeSlice(reflect.TypeOf(q).Elem(), 1, 1)
 		v.Index(0).FieldByName("Bucket").Set(reflect.ValueOf(name))
 		reflect.ValueOf(q).Elem().Set(v)
 	}
+}
+
+//
+// Post-processing
+//
+
+func (s s3Svc) Bucket(out *s3.GetBucketLocationOutput) error {
+	if !s.inRegion(out) {
+		return nil
+	}
+	return s.MakeResources("aws_s3_bucket", tfx.AttrGen{
+		"id": *s.Input(out).(*s3.GetBucketLocationInput).Bucket,
+	})
+}
+
+func (s s3Svc) BucketInventoryConfigurations(out *s3.ListBucketInventoryConfigurationsOutput) error {
+	bucket := *s.Input(out).(*s3.ListBucketInventoryConfigurationsInput).Bucket
+	return s.ImportResources("aws_s3_bucket_inventory", tfx.AttrGen{
+		"#":  len(out.InventoryConfigurationList),
+		"id": func(i int) string { return bucket + ":" + *out.InventoryConfigurationList[i].Id },
+	})
+}
+
+func (s s3Svc) BucketMetricsConfigurations(out *s3.ListBucketMetricsConfigurationsOutput) error {
+	bucket := *s.Input(out).(*s3.ListBucketMetricsConfigurationsInput).Bucket
+	return s.ImportResources("aws_s3_bucket_metric", tfx.AttrGen{
+		"#":  len(out.MetricsConfigurationList),
+		"id": func(i int) string { return bucket + ":" + *out.MetricsConfigurationList[i].Id },
+	})
+}
+
+func (s s3Svc) BucketNotificationConfiguration(out *s3.GetBucketNotificationConfigurationOutput) error {
+	return s.ImportResources("aws_s3_bucket_notification", tfx.AttrGen{
+		"id": *s.Input(out).(*s3.GetBucketNotificationConfigurationInput).Bucket,
+	})
+}
+
+func (s s3Svc) BucketPolicy(out *s3.GetBucketPolicyOutput) error {
+	return s.ImportResources("aws_s3_bucket_policy", tfx.AttrGen{
+		"id": *s.Input(out).(*s3.GetBucketLocationInput).Bucket,
+	})
+}
+
+func (s s3Svc) inRegion(out *s3.GetBucketLocationOutput) bool {
+	loc := string(out.LocationConstraint)
+	switch loc {
+	case "":
+		loc = endpoints.UsEast1RegionID
+	case "EU":
+		loc = endpoints.EuWest1RegionID
+	}
+	return loc == s.Region
 }
