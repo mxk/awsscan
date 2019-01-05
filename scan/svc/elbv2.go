@@ -2,6 +2,7 @@ package svc
 
 import (
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/service/elbv2"
 )
 
@@ -45,4 +46,32 @@ func (s elbv2Svc) DescribeTargetGroupAttributes(dtg *elbv2.DescribeTargetGroupsO
 func (s elbv2Svc) DescribeTargetHealth(dtg *elbv2.DescribeTargetGroupsOutput) (q []elbv2.DescribeTargetHealthInput) {
 	s.Split(&q, "TargetGroupArn", dtg.TargetGroups, "TargetGroupArn")
 	return
+}
+
+//
+// Post-processing
+//
+
+func (s elbv2Svc) Listeners(out *elbv2.DescribeListenersOutput) error {
+	return s.ImportResources("aws_lb_listener", tfx.AttrGen{
+		"id": s.Strings(out.Listeners, "ListenerArn"),
+	})
+}
+
+func (s elbv2Svc) LoadBalancers(out *elbv2.DescribeLoadBalancersOutput) error {
+	return s.ImportResources("aws_lb", tfx.AttrGen{
+		"id": s.Strings(out.LoadBalancers, "LoadBalancerArn"),
+	})
+}
+
+func (s elbv2Svc) Rules(out *elbv2.DescribeRulesOutput) error {
+	return s.ImportResources("aws_lb_listener_rule", tfx.AttrGen{
+		"id": s.Strings(out.Rules, "RuleArn"),
+	})
+}
+
+func (s elbv2Svc) TargetGroups(out *elbv2.DescribeTargetGroupsOutput) error {
+	return s.ImportResources("aws_lb_target_group", tfx.AttrGen{
+		"id": s.Strings(out.TargetGroups, "TargetGroupArn"),
+	})
 }
