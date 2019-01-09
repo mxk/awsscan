@@ -2,6 +2,7 @@ package svc
 
 import (
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
+	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
@@ -59,4 +60,27 @@ func (s kmsSvc) ListKeyPolicies(lk *kms.ListKeysOutput) (q []kms.ListKeyPolicies
 func (s kmsSvc) ListResourceTags(lk *kms.ListKeysOutput) (q []kms.ListResourceTagsInput) {
 	s.Split(&q, "KeyId", lk.Keys, "KeyId")
 	return
+}
+
+//
+// Post-processing
+//
+
+func (s kmsSvc) Keys(out *kms.GetKeyRotationStatusOutput) error {
+	// Terraform refresh fails without the permission to read rotation status
+	return s.ImportResources("aws_kms_key", tfx.AttrGen{
+		"id": *s.Input(out).(*kms.GetKeyRotationStatusInput).KeyId,
+	})
+}
+
+func (s kmsSvc) Aliases(out *kms.ListAliasesOutput) error {
+	ids := make([]string, 0, len(out.Aliases))
+	for i := range out.Aliases {
+		if a := &out.Aliases[i]; a.TargetKeyId != nil {
+			ids = append(ids, aws.StringValue(a.AliasName))
+		}
+	}
+	return s.ImportResources("aws_kms_alias", tfx.AttrGen{
+		"id": ids,
+	})
 }
