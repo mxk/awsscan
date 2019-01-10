@@ -126,7 +126,7 @@ func (s s3Svc) BucketNotificationConfiguration(out *s3.GetBucketNotificationConf
 
 func (s s3Svc) BucketPolicy(out *s3.GetBucketPolicyOutput) error {
 	return s.ImportResources("aws_s3_bucket_policy", tfx.AttrGen{
-		"id": *s.Input(out).(*s3.GetBucketLocationInput).Bucket,
+		"id": *s.Input(out).(*s3.GetBucketPolicyInput).Bucket,
 	})
 }
 
