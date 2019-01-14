@@ -149,6 +149,7 @@ func (cmd *scanCmd) Main(args []string) error {
 			if s, err = tfx.Context().Refresh(s); err != nil {
 				return err
 			}
+			tfx.Deps.Infer(s)
 		}
 		return tfx.WriteStateFile(cmd.Out, s)
 	}
