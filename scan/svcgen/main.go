@@ -10,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 	"text/template"
 
 	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/LuminalHQ/cloudcover/x/cli"
+	"github.com/LuminalHQ/cloudcover/x/gomod"
 	"github.com/aws/aws-sdk-go-v2/private/model/api"
 )
 
@@ -25,7 +25,7 @@ var genCli = cli.Info{
 	MinArgs: 2,
 	New: func() cli.Cmd {
 		return &genCmd{
-			Models: filepath.Join(findSDK(), "models"),
+			Models: filepath.Join(gomod.Root(api.Bootstrap).Path(), "models"),
 			API:    "BatchGet,Describe,Get,List",
 		}
 	},
@@ -228,23 +228,6 @@ func (s *Svc) render() ([]byte, error) {
 		err = fmt.Errorf("Source:\n%s\nError: %v\n", buf.Bytes(), err)
 	}
 	return src, err
-}
-
-// findSDK returns the absolute path to the aws-sdk-go-v2 directory used for
-// compiling the binary.
-func findSDK() string {
-	fn := runtime.FuncForPC(reflect.ValueOf(api.Bootstrap).Pointer())
-	path, _ := fn.FileLine(fn.Entry())
-	if !filepath.IsAbs(path) {
-		panic("svcgen: invalid path to api.go: " + path)
-	}
-	for !strings.HasPrefix(filepath.Base(path), "aws-sdk-go-v2") {
-		prev := path
-		if path = filepath.Dir(path); path == prev {
-			panic("svcgen: aws-sdk-go-v2 directory not found")
-		}
-	}
-	return path
 }
 
 // isScanAPI returns true if op is an API call that may be used by the scanner.
