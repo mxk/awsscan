@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/awserr"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/mxk/cloudcover/x/arn"
-	"github.com/mxk/cloudcover/x/awsmock"
+	"github.com/mxk/go-cloud/aws/arn"
+	"github.com/mxk/go-cloud/aws/awsmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

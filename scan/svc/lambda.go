@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/awsscan/scan"
 )
 
 type lambdaSvc struct{ *scan.Ctx }

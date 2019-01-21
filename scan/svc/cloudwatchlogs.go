@@ -4,8 +4,8 @@ import (
 	_ "unsafe"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-terraform/tfx"
 	_ "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 

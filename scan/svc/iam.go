@@ -5,8 +5,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-terraform/tfx"
 )
 
 type iamSvc struct{ *scan.Ctx }

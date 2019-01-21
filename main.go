@@ -13,17 +13,17 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/cli"
-	"github.com/mxk/cloudcover/x/region"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-cli"
+	"github.com/mxk/go-cloud/aws/region"
+	"github.com/mxk/go-terraform/tfx"
 	"github.com/pkg/errors"
 
 	// Service registration
-	_ "github.com/mxk/cloudcover/awsscan/scan/svc"
+	_ "github.com/mxk/awsscan/scan/svc"
 
 	// Provider registration
-	_ "github.com/mxk/cloudcover/x/tfaws"
+	_ "github.com/mxk/go-terraform/tfaws"
 )
 
 type scanCmd struct {

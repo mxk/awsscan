@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-terraform/tfx"
 )
 
 type s3Svc struct{ *scan.Ctx }

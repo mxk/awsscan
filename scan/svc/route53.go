@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/route53"
-	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/awsscan/scan"
 )
 
 type route53Svc struct{ *scan.Ctx }

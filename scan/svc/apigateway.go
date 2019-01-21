@@ -5,7 +5,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/apigateway"
-	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/awsscan/scan"
 )
 
 type apigatewaySvc struct{ *scan.Ctx }

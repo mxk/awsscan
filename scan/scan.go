@@ -11,9 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	tf "github.com/hashicorp/terraform/terraform"
-	"github.com/mxk/cloudcover/x/arn"
-	"github.com/mxk/cloudcover/x/region"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/go-cloud/aws/arn"
+	"github.com/mxk/go-cloud/aws/region"
+	"github.com/mxk/go-terraform/tfx"
 	"github.com/pkg/errors"
 )
 

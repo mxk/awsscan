@@ -14,8 +14,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/cli"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-cli"
 	"github.com/mxk/go-gomod"
 	"github.com/aws/aws-sdk-go-v2/private/model/api"
 )

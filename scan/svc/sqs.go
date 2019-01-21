@@ -2,7 +2,7 @@ package svc
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
-	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/awsscan/scan"
 )
 
 type sqsSvc struct{ *scan.Ctx }

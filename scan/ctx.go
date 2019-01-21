@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/defaults"
 	tf "github.com/hashicorp/terraform/terraform"
-	"github.com/mxk/cloudcover/x/arn"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/go-cloud/aws/arn"
+	"github.com/mxk/go-terraform/tfx"
 )
 
 // Ctx contains the scan state for one service/region combination.

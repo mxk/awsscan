@@ -4,8 +4,8 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/service/elb"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/tfx"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-terraform/tfx"
 )
 
 type elbSvc struct{ *scan.Ctx }

@@ -3,8 +3,8 @@ package svc
 import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
-	"github.com/mxk/cloudcover/awsscan/scan"
-	"github.com/mxk/cloudcover/x/arn"
+	"github.com/mxk/awsscan/scan"
+	"github.com/mxk/go-cloud/aws/arn"
 )
 
 type ecsSvc struct{ *scan.Ctx }
