@@ -16,7 +16,7 @@ import (
 
 	"github.com/mxk/cloudcover/awsscan/scan"
 	"github.com/mxk/cloudcover/x/cli"
-	"github.com/mxk/cloudcover/x/gomod"
+	"github.com/mxk/go-gomod"
 	"github.com/aws/aws-sdk-go-v2/private/model/api"
 )
 
