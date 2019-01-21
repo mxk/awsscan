@@ -1,8 +1,8 @@
 package svc
 
 import (
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/aws/aws-sdk-go-v2/service/acmpca"
+	"github.com/mxk/cloudcover/awsscan/scan"
 )
 
 type acmpcaSvc struct{ *scan.Ctx }

@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/cloudcover/x/tfx"
 )
 
 type ec2Svc struct{ *scan.Ctx }

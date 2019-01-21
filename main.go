@@ -11,19 +11,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
-	"github.com/LuminalHQ/cloudcover/x/cli"
-	"github.com/LuminalHQ/cloudcover/x/region"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/cloudcover/x/cli"
+	"github.com/mxk/cloudcover/x/region"
+	"github.com/mxk/cloudcover/x/tfx"
 	"github.com/pkg/errors"
 
 	// Service registration
-	_ "github.com/LuminalHQ/cloudcover/awsscan/scan/svc"
+	_ "github.com/mxk/cloudcover/awsscan/scan/svc"
 
 	// Provider registration
-	_ "github.com/LuminalHQ/cloudcover/x/tfaws"
+	_ "github.com/mxk/cloudcover/x/tfaws"
 )
 
 type scanCmd struct {

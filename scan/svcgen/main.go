@@ -14,9 +14,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
-	"github.com/LuminalHQ/cloudcover/x/cli"
-	"github.com/LuminalHQ/cloudcover/x/gomod"
+	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/cloudcover/x/cli"
+	"github.com/mxk/cloudcover/x/gomod"
 	"github.com/aws/aws-sdk-go-v2/private/model/api"
 )
 

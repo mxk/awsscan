@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LuminalHQ/cloudcover/x/arn"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/defaults"
 	tf "github.com/hashicorp/terraform/terraform"
+	"github.com/mxk/cloudcover/x/arn"
+	"github.com/mxk/cloudcover/x/tfx"
 )
 
 // Ctx contains the scan state for one service/region combination.

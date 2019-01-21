@@ -3,8 +3,8 @@ package svc
 import (
 	"strings"
 
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/aws/aws-sdk-go-v2/service/route53"
+	"github.com/mxk/cloudcover/awsscan/scan"
 )
 
 type route53Svc struct{ *scan.Ctx }

@@ -1,9 +1,9 @@
 package svc
 
 import (
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/elasticache"
+	"github.com/mxk/cloudcover/awsscan/scan"
 )
 
 type elasticacheSvc struct{ *scan.Ctx }

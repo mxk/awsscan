@@ -3,9 +3,9 @@ package svc
 import (
 	_ "unsafe"
 
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/cloudcover/x/tfx"
 	_ "github.com/terraform-providers/terraform-provider-aws/aws"
 )
 

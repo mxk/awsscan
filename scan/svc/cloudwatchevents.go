@@ -1,9 +1,9 @@
 package svc
 
 import (
-	"github.com/LuminalHQ/cloudcover/awsscan/scan"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchevents"
+	"github.com/mxk/cloudcover/awsscan/scan"
+	"github.com/mxk/cloudcover/x/tfx"
 )
 
 type cloudwatcheventsSvc struct{ *scan.Ctx }

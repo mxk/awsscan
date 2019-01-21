@@ -8,12 +8,12 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/LuminalHQ/cloudcover/x/arn"
-	"github.com/LuminalHQ/cloudcover/x/region"
-	"github.com/LuminalHQ/cloudcover/x/tfx"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	tf "github.com/hashicorp/terraform/terraform"
+	"github.com/mxk/cloudcover/x/arn"
+	"github.com/mxk/cloudcover/x/region"
+	"github.com/mxk/cloudcover/x/tfx"
 	"github.com/pkg/errors"
 )
 
