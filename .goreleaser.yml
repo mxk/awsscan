@@ -1,0 +1,21 @@
+builds:
+- env: [CGO_ENABLED=0]
+  goos: [darwin, linux, windows]
+  goarch: [amd64]
+
+archive:
+  name_template: '{{.ProjectName}}-v{{.Version}}-{{.Os}}-{{.Arch}}'
+  format_overrides: [{goos: windows, format: zip}]
+  files: [binaries-only*]
+
+checksum:
+  name_template: '{{.ProjectName}}-v{{.Version}}-sha256.txt'
+
+release:
+  prerelease: auto
+
+changelog:
+  filters:
+    exclude:
+    - ^Merge pull request
+    - ^Merge branch
