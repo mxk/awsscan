@@ -156,6 +156,8 @@ github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx
 github.com/mxk/go-cli v0.0.0-20190121144758-c7a3ca43125c/go.mod h1:6qJjFoTWSh6ejTIujU8rzeSIetfiEKt5iAcSOu3K1OM=
 github.com/mxk/go-cli v0.1.0 h1:fh+9cwmdyvgjLZ9LO29RMdpQkByDxA+LX2AiNXiGSU4=
 github.com/mxk/go-cli v0.1.0/go.mod h1:6qJjFoTWSh6ejTIujU8rzeSIetfiEKt5iAcSOu3K1OM=
+github.com/mxk/go-cli v0.2.0 h1:6WRuRbOEUW3o6wqk1nVg9Y96EcKhNM9esz+XM/K9fm4=
+github.com/mxk/go-cli v0.2.0/go.mod h1:6qJjFoTWSh6ejTIujU8rzeSIetfiEKt5iAcSOu3K1OM=
 github.com/mxk/go-cloud v0.1.0 h1:hQAkDQtybDdpTAq0NLdUZBrSqfvngQddUTqp2Z2DfB4=
 github.com/mxk/go-cloud v0.1.0/go.mod h1:+PK/hhJ5u1qxfp+0/44DtvXVIZAsCMl8wqmXXz1GhkA=
 github.com/mxk/go-fast v0.0.0-20190121142930-3a08391f9d4a/go.mod h1:jTbdxPwgRnajaYb2Fn35Jap2yofNT87saV3CuG4qXoo=

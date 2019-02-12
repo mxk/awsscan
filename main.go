@@ -52,7 +52,7 @@ func main() {
 			}
 		},
 	}
-	cli.Main.Run(os.Args[1:])
+	cli.Main.Run()
 }
 
 func (*scanCmd) Info() *cli.Info { return &cli.Main }
